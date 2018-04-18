@@ -22,13 +22,33 @@ interpolate_nearest_ui8(const VRVOL* vol, glm::vec3 pt)
     float val =  ((uint8_t*)vol->data)[ind]/MAX_UI8;
     return val;
 }
-
 /*
+ * get the point value in order to interpolate
+ * assume pt.x y z is int
+ */
+float get_pt(const VRVOL *vol, glm::vec3 pt)
+{
+    if (pt.x < 0 || pt.y < 0 || pt.z < 0 ||
+        pt.x >= vol->gridx || pt.y >= vol->gridy || pt.z >= vol->gridz)
+    {
+        return 0.0; //this treats everything outside the volume as 0
+                    //there are other choices, but this will work for
+                    //most cases.
+    }
+
+    int ind = pt.x;
+    ind += pt.y * vol->gridx;
+    ind += pt.z * vol->gridx * vol->gridy;
+    float val = ((uint8_t *)vol->data)[ind] / MAX_UI8;
+    return val;
+}
+
+    /*
  * Returns the gradient at pt, this is not the most efficient
  * way to implement this function, but it will work.
  */
-glm::vec3
-gradient_nearest_ui8(const VRVOL*vol, glm::vec3 pt)
+    glm::vec3
+    gradient_nearest_ui8(const VRVOL *vol, glm::vec3 pt)
 {
     //we can do this more effieinctly by explicitly looking up the data, but
     //this is a better representation.

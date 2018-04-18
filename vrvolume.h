@@ -57,8 +57,8 @@ VRVOL* readvol_ui8(const char *fn,size_t gridx,size_t gridy,size_t gridz, glm::v
 float vrv_interpolate(const VRVOL* vol, glm::vec3 pt);
 glm::vec3 vrv_gradient(const VRVOL* vol, glm::vec3 pt);
 
-
-/****************************************************************************************************
+float get_pt(const VRVOL *vol, glm::vec3 pt);
+    /****************************************************************************************************
  * The code was developed by Garrett Aldrich for [ECS 277] Advanced Visualization at UC Davis.
  * Bugs and problems :'(
  * If you are in my class, please don't email me.... start a thread on canvas :-)
