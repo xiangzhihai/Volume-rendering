@@ -2,7 +2,7 @@
 #include "common.h"
 #include "glm/glm.hpp"
 #include "glm/gtc/quaternion.hpp"
-
+#include <iostream>
 RAY
 cam_ortho_getray(const CAMERA* cam, float point_x, float point_y)
 {
@@ -62,6 +62,7 @@ cam_update_view(CAMERA *cam, glm::vec3 dir, glm::vec3 eye, glm::vec3 up){
 
     cam->frame_u = glm::cross(cam->dir,cam->up);
     cam->frame_v = cam->up;
+    std::cout << cam->dir.x << " " << cam->dir.y << " " << cam->dir.z << std::endl;
 }
 
 
