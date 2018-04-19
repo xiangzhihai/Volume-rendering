@@ -30,7 +30,7 @@ deps := $(patsubst %.o,%.d,$(OBJS))
 -include $(deps)
 
 $(TARGET): $(OBJS)
-	$(CC)  $(LDLIBS) $^ -o $@
+	$(CC)   $^ -o $@ $(LDLIBS)
 
 # Generic rule for compiling objects
 %.o: %.c

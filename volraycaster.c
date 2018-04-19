@@ -4,6 +4,7 @@
 #include "common.h"
 #include "vrvolume.h"
 #include <math.h>
+#include <iostream>
 //this just used for the simple ray caster that intersects
 //a dense part of the volume and returns that color, rather
 //than accumulating the color properly
@@ -92,29 +93,29 @@ glm::vec3 blinn_phong(glm::vec3 wpt, glm::vec3 view, glm::vec3 norm, glm::vec3 c
 }
 glm::vec3 linear_gradient(glm::vec4 *mesh, glm::vec3 pt) 
 {
-    float x = pt.x, y = pt.y, z = pt.z;
+    float x = pt.x - floor(pt.x), y = pt.y - floor(pt.y), z = pt.z - floor(pt.z);
 
-    float dx = (1 - y) * (1 - z) * -mesh[0].w;
-    dx += -mesh[1].w * z * (1 - y) - mesh[2].w * y * (1 - z) - mesh[3].w * y * z;
+    float dx = (1 - y) * (1 - z) * (-mesh[0].w);
+    dx += (-mesh[1].w) * z * (1 - y) - mesh[2].w * y * (1 - z) - mesh[3].w * y * z;
     dx += mesh[4].w * (1 - y) * (1 - z) + mesh[5].w * z * (1 - y) + mesh[6].w * y * (1 - z) + mesh[7].w * y * z;
 
-    float dy = (1 - x) * (1 - z) * -mesh[0].w;
-    dy += -mesh[1].w * z * (1 - x) + mesh[2].w * (1 - x) * (1 - z) + mesh[3].w * (1 - x) * z;
-    dy += -mesh[4].w * x * (1 - z) - mesh[5].w * z * x + mesh[6].w * x * (1 - z) + mesh[7].w * x * z;
+    float dy = (1 - x) * (1 - z) * (-mesh[0].w);
+    dy += (-mesh[1].w) * z * (1 - x) + mesh[2].w * (1 - x) * (1 - z) + mesh[3].w * (1 - x) * z;
+    dy += (-mesh[4].w) * x * (1 - z) - mesh[5].w * z * x + mesh[6].w * x * (1 - z) + mesh[7].w * x * z;
 
-    float dz = (1 - x) * (1 - y) * -mesh[0].w;
+    float dz = (1 - x) * (1 - y) * (-mesh[0].w);
     dz += mesh[1].w * (1 - x) * (1 - y) - mesh[2].w * y * (1 - x) + mesh[3].w * y * (1 - x);
-    dz += -mesh[4].w * x * (1 - y) - mesh[5].w * x * (1 - y) - mesh[6].w * x * y + mesh[7].w * x * y;
+    dz += (-mesh[4].w) * x * (1 - y) + mesh[5].w * x * (1 - y) - mesh[6].w * x * y + mesh[7].w * x * y;
 
     return glm::vec3(dx, dy, dz);
 }
 
 glm::vec4 linear_interpolation(glm::vec4 *mesh, glm::vec3 pt)
 {
-    float x = pt.x, y = pt.y, z = pt.z;
+    float x = pt.x - floor(pt.x), y = pt.y - floor(pt.y), z = pt.z - floor(pt.z);
 
-    //now interpolate R
-    float R =(1 - x)* (1 - y) * (1 - z) * mesh[0].x;
+    //now interpolate 
+    float R = (1 - x) * (1 - y) * (1 - z) * mesh[0].x;
     R += (1 - x) * (1 - y) * z * mesh[1].x;
     R += (1 - x) * y * (1 - z) * mesh[2].x;
     R += (1 - x) * y * z * mesh[3].x;
@@ -123,38 +124,10 @@ glm::vec4 linear_interpolation(glm::vec4 *mesh, glm::vec3 pt)
     R +=  x * y * (1 - z) * mesh[6].x;
     R +=  x * y * z * mesh[7].x;
 
-    //G
-    float G = (1 - x) * (1 - y) * (1 - z) * mesh[0].y;
-    G += (1 - x) * (1 - y) * z * mesh[1].y;
-    G += (1 - x) * y * (1 - z) * mesh[2].y;
-    G += (1 - x) * y * z * mesh[3].y;
-    G += x * (1 - y) * (1 - z) * mesh[4].y;
-    G += x * (1 - y) * (z)*mesh[5].y;
-    G += x * y * (1 - z) * mesh[6].y;
-    G += x * y * z * mesh[7].y;
-
-    float B = (1 - x) * (1 - y) * (1 - z) * mesh[0].z;
-    B += (1 - x) * (1 - y) * z * mesh[1].z;
-    B += (1 - x) * y * (1 - z) * mesh[2].z;
-    B += (1 - x) * y * z * mesh[3].z;
-    B += x * (1 - y) * (1 - z) * mesh[4].z;
-    B += x * (1 - y) * (z)*mesh[5].z;
-    B += x * y * (1 - z) * mesh[6].z;
-    B += x * y * z * mesh[7].z;
-
-    float A = (1 - x) * (1 - y) * (1 - z) * mesh[0].w;
-    A += (1 - x) * (1 - y) * z * mesh[1].w;
-    A += (1 - x) * y * (1 - z) * mesh[2].w;
-    A += (1 - x) * y * z * mesh[3].w;
-    A += x * (1 - y) * (1 - z) * mesh[4].w;
-    A += x * (1 - y) * (z)*mesh[5].w;
-    A += x * y * (1 - z) * mesh[6].w;
-    A += x * y * z * mesh[7].w;
-
-    return glm::vec4(R, G, B, A);
+    return glm::vec4(R, R, R, R);
 }
 
-glm::vec4 *get_mesh(glm::vec3 pt)
+void get_mesh(glm::vec3 pt, glm::vec4 *mesh)
 {
     //first get all 8 points
     float f000 = get_pt(volume, glm::vec3(floor(pt.x), floor(pt.y), floor(pt.z)));
@@ -167,7 +140,8 @@ glm::vec4 *get_mesh(glm::vec3 pt)
     float f011 = get_pt(volume, glm::vec3(floor(pt.x), ceil(pt.y), ceil(pt.z)));
 
     //create an array
-    glm::vec4 *mesh = (glm::vec4*) malloc(8 * sizeof(glm::vec4));
+    free(mesh);
+    mesh = (glm::vec4 *)malloc(8 * sizeof(glm::vec4));
 
     //get their corresponding colors
     glm::vec4 c000 = vrt_lookup(transfer, f000);
@@ -188,7 +162,6 @@ glm::vec4 *get_mesh(glm::vec3 pt)
     mesh[6] = c110;
     mesh[7] = c111;
 
-    return mesh;
 }
 
 /*
@@ -196,7 +169,7 @@ glm::vec4 *get_mesh(glm::vec3 pt)
  */
 void vrc_accumulate(const RAY *ray,float t0, float t1, float *out)
 {
-
+    bool f = false;
     //march ray for at most maxsteps
     for(int i = 0; i < maxsteps && t0<=t1; i++)
     {
@@ -222,6 +195,8 @@ void vrc_accumulate(const RAY *ray,float t0, float t1, float *out)
          ***/
         float val = vrv_interpolate(volume,pt);
 
+        
+
 
         /*** This is where you would accumulate colors based on
          *** the opacity values returned from the transfer function.
@@ -234,13 +209,19 @@ void vrc_accumulate(const RAY *ray,float t0, float t1, float *out)
          //assumes interpolate returns values between 1.0 and 0;
          if(val > ISO_THRESHOLD)
          {
-             glm::vec4 tcol = vrt_lookup(transfer,val);
+             glm::vec4 *mesh = (glm::vec4 *)malloc(8 * sizeof(glm::vec4));
+             get_mesh(pt, mesh);
+             //glm::vec4 tcol = vrt_lookup(transfer,val);
+             glm::vec4 tcol = linear_interpolation(mesh, pt);
              if(rendphong){
                  //gradient is the normal to the iso-surface at this
                  //location, so it makes sense to use for lighting
-                 glm::vec3 grad = vrv_gradient(volume, pt);
+                 //glm::vec3 grad = vrv_gradient(volume, pt);
+                 glm::vec3 grad = linear_gradient(mesh, pt);
+                 //std::cout << grad.x << " " << grad.y << " " << grad.z << std::endl;
+                 //std::cout << grad1.x << " " << grad1.y << " " << grad1.z << std::endl <<std::endl;
                  grad = glm::normalize(grad);
-
+                
                  //turn gradient (normal) so its always facing the light
 
                  glm::vec3 col = blinn_phong(ray->orig+ray->dir*t0,ray->dir,grad,glm::vec3(tcol));
