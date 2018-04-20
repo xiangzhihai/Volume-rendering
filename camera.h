@@ -54,6 +54,9 @@ void cam_update_view(CAMERA *cam, glm::vec3 dir, glm::vec3 eye, glm::vec3 up);
 void
 cam_rotate_sphere(CAMERA *cam, glm::vec3 start, glm::vec3 end);
 
+void zoom_out(CAMERA *cam);
+void zoom_in(CAMERA *cam);
+void rotate_left(CAMERA *cam);
 /****************************************************************************************************
  * The code was developed by Garrett Aldrich for [ECS 277] Advanced Visualization at UC Davis.
  * Bugs and problems :'(

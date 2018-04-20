@@ -2,7 +2,6 @@
 
 #include "common.h"
 #include "volraycaster.h"
-
 #define INITAL_DELTA_T .01
 #define INITIAL_MAX_STEPS 1000
 #define INITIAL_MINTRANS .01
@@ -403,7 +402,18 @@ void key(unsigned char ch, int x, int y){
         vrc_phong(1);
         glutPostRedisplay();
         break;
-
+    case 'i':
+        zoom_in(vrc_camera());
+        glutPostRedisplay();
+        break;
+    case 'o':
+        zoom_out(vrc_camera());
+        glutPostRedisplay();
+        break;
+    case ']':
+        rotate_left(vrc_camera());
+        glutPostRedisplay();
+        break;
     default:
         EPRINT("Unknown keypress: %c\n",ch);
         break;

@@ -5,11 +5,15 @@
 #include "vrvolume.h"
 #include <math.h>
 #include <iostream>
+#include <vector>
 //this just used for the simple ray caster that intersects
 //a dense part of the volume and returns that color, rather
 //than accumulating the color properly
-#define ISO_THRESHOLD .05
+#define ISO_THRESHOLD .03
 #define END .9
+
+
+using namespace std;
 //ray casting variables
 CAMERA *camera = NULL;
 VRLIGHT *light = NULL;
@@ -140,13 +144,152 @@ void get_mesh(glm::vec3 pt, float *mesh)
 
     //first get all 8 points
     mesh[0] = get_pt(volume, glm::vec3(floor(pt.x), floor(pt.y), floor(pt.z)));
-    mesh[1] = get_pt(volume, glm::vec3(ceil(pt.x), floor(pt.y), floor(pt.z)));
+    mesh[1] = get_pt(volume, glm::vec3(floor(pt.x), floor(pt.y), ceil(pt.z)));
     mesh[2] = get_pt(volume, glm::vec3(floor(pt.x), ceil(pt.y), floor(pt.z)));
-    mesh[3] = get_pt(volume, glm::vec3(floor(pt.x), floor(pt.y), ceil(pt.z)));
-    mesh[4] = get_pt(volume, glm::vec3(ceil(pt.x), floor(pt.y), ceil(pt.z)));
-    mesh[5] = get_pt(volume, glm::vec3(ceil(pt.x), ceil(pt.y), floor(pt.z)));
-    mesh[6] = get_pt(volume, glm::vec3(ceil(pt.x), ceil(pt.y), ceil(pt.z)));
-    mesh[7] = get_pt(volume, glm::vec3(floor(pt.x), ceil(pt.y), ceil(pt.z)));
+    mesh[3] = get_pt(volume, glm::vec3(floor(pt.x), ceil(pt.y), ceil(pt.z)));
+    mesh[4] = get_pt(volume, glm::vec3(ceil(pt.x), floor(pt.y), floor(pt.z)));
+    mesh[5] = get_pt(volume, glm::vec3(ceil(pt.x), floor(pt.y), ceil(pt.z)));
+    mesh[6] = get_pt(volume, glm::vec3(ceil(pt.x), ceil(pt.y), floor(pt.z)));
+    mesh[7] = get_pt(volume, glm::vec3(ceil(pt.x), ceil(pt.y), ceil(pt.z)));
+}
+
+glm::vec3 get_direvative(glm::vec3 pt)
+{   
+    //result direvative
+    glm::vec3 Dir;
+
+    if (pt.x == 0) //when in grid min
+    {
+        float x1 = get_pt(volume, glm::vec3(pt.x + 1, pt.y, pt.z));
+        Dir.x = (x1 - pt.x) / 2;
+    }
+    else if (pt.x == volume->gridz) //when in grid max
+    {
+        float x_1 = get_pt(volume, glm::vec3(pt.x - 1, pt.y, pt.z));
+        Dir.x = (pt.x - x_1) / 2;
+    }
+    else { //in middle
+        float x1 = get_pt(volume, glm::vec3(pt.x + 1, pt.y, pt.z));
+        float x_1 = get_pt(volume, glm::vec3(pt.x - 1, pt.y, pt.z));
+        Dir.x = (x1 - x_1) / 2;
+    }
+
+    if (pt.y == 0)
+    {
+        float y1 = get_pt(volume, glm::vec3(pt.x, pt.y + 1, pt.z));
+        Dir.y = (y1 - pt.y) / 2;
+    }
+    else if (pt.y == volume->gridy) //when in grid max
+    {
+        float y_1 = get_pt(volume, glm::vec3(pt.x, pt.y - 1, pt.z));
+        Dir.y = (pt.y - y_1) / 2;
+    }
+    else
+    { //in middle
+        float y1 = get_pt(volume, glm::vec3(pt.x, pt.y + 1, pt.z));
+        float y_1 = get_pt(volume, glm::vec3(pt.x, pt.y - 1, pt.z));
+        Dir.y = (y1 - y_1) / 2;
+    }
+
+    if (pt.z == 0)
+    {
+        float z1 = get_pt(volume, glm::vec3(pt.x, pt.y, pt.z + 1));
+        Dir.z = (z1 - pt.z) / 2;
+    }
+    else if (pt.z == volume->gridz) //when in grid max
+    {
+        float z_1 = get_pt(volume, glm::vec3(pt.x, pt.y, pt.z - 1));
+        Dir.z = (pt.z - z_1) / 2;
+    }
+    else
+    { //in middle
+        float z1 = get_pt(volume, glm::vec3(pt.x, pt.y, pt.z + 1));
+        float z_1 = get_pt(volume, glm::vec3(pt.x, pt.y, pt.z - 1));
+        Dir.z = (z1 - z_1) / 2;
+    }
+    return Dir;
+}
+
+vector<vector<vector<float > > > get_bezier(glm::vec3 pt, float *mesh)
+{
+    //get all g and m points into a 3d vector, 8 elements in total 2 * 2 * 2
+    vector<vector<vector<glm::vec3> > > g(2, vector<vector<glm::vec3> >(2, vector<glm::vec3>(2)));
+    vector<vector<vector<float> > > m(2, vector<vector<float> >(2, vector<float>(2)));
+    vector<vector<vector<float> > > b(4, vector<vector<float> >(4, vector<float>(4)));
+    for (int i = 0; i < 2; i++)
+        for (int j = 0; j < 2; j++)
+            for (int k = 0; k < 2; k++)
+            {
+                g[i][j][k] = get_direvative(glm::vec3(i ? ceil(pt.x) : floor(pt.x),
+                                                      j ? ceil(pt.y) : floor(pt.y),
+                                                      k ? ceil(pt.z) : floor(pt.z)));
+                m[i][j][k] = mesh[i * 4 + j * 2 + i];
+            }
+                
+    //try to get all b points, 32 elements in total 4 * 4 * 4
+    for (int i = 0; i < 4; i++)
+        for (int j = 0; j < 4; j++)
+            for (int k = 0; k < 4; k++)
+            {
+                float x = i < 2 ? 0 : 1, y = j < 2 ? 0 : 1, z = k < 2 ? 0 : 1;
+                b[i][j][k] = m[x][y][z];
+                if (i == 2 || i == 1) //in middle
+                    b[i][j][k] += i == 1 ? g[x][y][z].x / 3 : -g[x][y][z].x / 3;
+                if (j == 2 || j == 1) //in middle
+                    b[i][j][k] += i == 1 ? g[x][y][z].y / 3 : -g[x][y][z].y / 3;
+                if (k == 2 || k == 1) //in middle
+                    b[i][j][k] += i == 1 ? g[x][y][z].z / 3 : -g[x][y][z].z / 3;
+            }
+    return b;
+}
+
+float Bezier3(int i, int j, int k, glm::vec3 pt)
+{
+    float x = pow(1 - pt.x, 3 - i) * pow(pt.x, i) * ((i == 2 || i == 1) ? 3 : 1);
+    float y = pow(1 - pt.y, 3 - j) * pow(pt.y, j) * ((j == 2 || j == 1) ? 3 : 1);
+    float z = pow(1 - pt.z, 3 - k) * pow(pt.z, k) * ((k == 2 || k == 1) ? 3 : 1);
+    return x * y * z;
+}
+
+float cubic_interpolation(glm::vec3 pt, vector<vector<vector<float> > > b)
+{
+    float res = 0;
+    for (int i = 0; i < 4; i++)
+        for (int j = 0; j < 4; j++)
+            for (int k = 0; k < 4; k++)
+                res += b[i][j][k] * Bezier3(i, j, k, pt);
+    return res;
+}
+
+float burn2(int d, float pt)
+{
+    return pow(1 - pt, 2 - d) * pow(pt, d) * ((d == 1) ? 2 : 1);
+}
+
+float burn3(int d, float pt)
+{
+    return pow(1 - pt, 3 - d) * pow(pt, d) * ((d == 2 || d == 1) ? 3 : 1);
+}
+
+glm::vec3 cubic_gradient(glm::vec3 pt, vector<vector<vector<float> > > b)
+{
+    float dx = 0, dy = 0, dz = 0;
+    for (int i = 0; i < 3; i++)
+        for (int j = 0; j < 4; j++)
+            for (int k = 0; k < 4; k++)
+                dx += (b[i + 1][j][k] - b[i][j][k]) * burn2(i, pt.x) * burn3(j, pt.y) * burn3(k, pt.z);
+
+    for (int i = 0; i < 4; i++)
+        for (int j = 0; j < 3; j++)
+            for (int k = 0; k < 4; k++)
+                dy += (b[i][j + 1][k] - b[i][j][k]) * burn3(i, pt.x) * burn2(j, pt.y) * burn3(k, pt.z);
+
+    for (int i = 0; i < 4; i++)
+        for (int j = 0; j < 4; j++)
+            for (int k = 0; k < 3; k++)
+                dz += (b[i][j][k + 1] - b[i][j][k]) * burn3(i, pt.x) * burn3(j, pt.y) * burn2(k, pt.z);
+
+    return glm::vec3(dx, dy, dz);
 }
 
 /*
