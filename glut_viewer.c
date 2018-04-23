@@ -1,5 +1,5 @@
 #include "glut_viewer.h"
-
+#include <iostream>
 #include "common.h"
 #include "volraycaster.h"
 #define INITAL_DELTA_T .01
@@ -412,6 +412,50 @@ void key(unsigned char ch, int x, int y){
         break;
     case ']':
         rotate_left(vrc_camera());
+        glutPostRedisplay();
+        break;
+    case 'm':
+        change_mode();
+        glutPostRedisplay();
+        break;
+    case 'd':
+        light_right();
+        glutPostRedisplay();
+        break;
+    case 'a':
+        light_left();
+        glutPostRedisplay();
+        break;
+    case 'w':
+        light_up();
+        glutPostRedisplay();
+        break;
+    case 's':
+        light_down();
+        glutPostRedisplay();
+        break;
+    case 'q':
+        light_in();
+        glutPostRedisplay();
+        break;
+    case 'e':
+        light_out();
+        glutPostRedisplay();
+        break;
+    case 'x':
+        Range_low_up();
+        glutPostRedisplay();
+        break;
+    case 'z':
+        Range_low_down();
+        glutPostRedisplay();
+        break;
+    case 'c':
+        Range_high_down();
+        glutPostRedisplay();
+        break;
+    case 'v':
+        Range_high_up();
         glutPostRedisplay();
         break;
     default:

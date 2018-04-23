@@ -34,7 +34,19 @@ int vrc_setmarch(float delta_t, uint32_t max_steps);
  */
 int vrc_render(float *out_rgba);
 
+void change_mode();
+void light_right();
+void light_left();
+void light_up();
+void light_down();
+void light_in();
+void light_out();
+void Range_low_up();
 
+void Range_low_down();
+
+void Range_high_up();
+void Range_high_down();
 /****************************************************************************************************
  * The code was developed by Garrett Aldrich for [ECS 277] Advanced Visualization at UC Davis.
  * Bugs and problems :'(

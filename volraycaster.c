@@ -9,10 +9,11 @@
 //this just used for the simple ray caster that intersects
 //a dense part of the volume and returns that color, rather
 //than accumulating the color properly
-#define ISO_THRESHOLD .03
+#define ISO_THRESHOLD 0.025
 #define END .9
-
-
+#define LIGHTMOVE 0.5
+#define RANGEMOVE 0.05
+#define RNAGEDIFF 0.1
 using namespace std;
 //ray casting variables
 CAMERA *camera = NULL;
@@ -23,13 +24,94 @@ VRVOL *volume = NULL;
 //ray marching
 float dt = .01;
 float maxsteps = 1000;
-
+int mode = 3;
 //use blinn phong shading to render
 int rendphong = 0;
+float low = 0.0, high = 1.0;
+void light_right()
+{
+    light->pos.x += LIGHTMOVE;
+}
+void light_left()
+{
+    light->pos.x -= LIGHTMOVE;
+}
+
+void light_up()
+{
+    light->pos.y += LIGHTMOVE;
+}
+void light_down()
+{
+    light->pos.y -= LIGHTMOVE;
+}
+
+void light_in()
+{
+    light->pos.z += LIGHTMOVE;
+}
+void light_out()
+{
+    light->pos.z -= LIGHTMOVE;
+}
 
 void vrc_phong(int use_phong)
 {
     rendphong = use_phong;
+}
+
+void change_mode()
+{
+    if (mode == 0)
+    {
+        mode = 1;
+        std::cout << "linear" << std::endl;
+    }
+    else if (mode == 1)
+    {
+        mode = 2;
+        std::cout << "cubic" << std::endl;
+    }
+    else if (mode == 2)
+    {
+        mode = 3;
+        std::cout << "vrv" << std::endl;
+    } 
+    else
+    {
+        mode = 0;
+        std::cout << "com" << std::endl;
+    }
+        
+}
+
+bool inRange(float val)
+{
+    return low < val && val < high;
+}
+
+void Range_low_up()
+{
+    if (low + RANGEMOVE + RNAGEDIFF <= high)
+        low += RANGEMOVE;
+}
+
+void Range_low_down()
+{
+    if (low - RANGEMOVE > 0)
+        low -= RANGEMOVE;
+}
+
+void Range_high_up()
+{
+    if (high + RANGEMOVE < 1)
+        high += RANGEMOVE;
+}
+
+void Range_high_down()
+{
+    if (low + RNAGEDIFF <= high - RANGEMOVE)
+        high -= RANGEMOVE;
 }
 
 VRVOL *vrc_volume()
@@ -157,16 +239,16 @@ glm::vec3 get_direvative(glm::vec3 pt)
 {   
     //result direvative
     glm::vec3 Dir;
-
+    float val = get_pt(volume, pt);
     if (pt.x == 0) //when in grid min
     {
         float x1 = get_pt(volume, glm::vec3(pt.x + 1, pt.y, pt.z));
-        Dir.x = (x1 - pt.x) / 2;
+        Dir.x = (x1 - val) / 2;
     }
     else if (pt.x == volume->gridz) //when in grid max
     {
         float x_1 = get_pt(volume, glm::vec3(pt.x - 1, pt.y, pt.z));
-        Dir.x = (pt.x - x_1) / 2;
+        Dir.x = (val - x_1) / 2;
     }
     else { //in middle
         float x1 = get_pt(volume, glm::vec3(pt.x + 1, pt.y, pt.z));
@@ -177,12 +259,12 @@ glm::vec3 get_direvative(glm::vec3 pt)
     if (pt.y == 0)
     {
         float y1 = get_pt(volume, glm::vec3(pt.x, pt.y + 1, pt.z));
-        Dir.y = (y1 - pt.y) / 2;
+        Dir.y = (y1 - val) / 2;
     }
     else if (pt.y == volume->gridy) //when in grid max
     {
         float y_1 = get_pt(volume, glm::vec3(pt.x, pt.y - 1, pt.z));
-        Dir.y = (pt.y - y_1) / 2;
+        Dir.y = (val - y_1) / 2;
     }
     else
     { //in middle
@@ -194,12 +276,12 @@ glm::vec3 get_direvative(glm::vec3 pt)
     if (pt.z == 0)
     {
         float z1 = get_pt(volume, glm::vec3(pt.x, pt.y, pt.z + 1));
-        Dir.z = (z1 - pt.z) / 2;
+        Dir.z = (z1 - val) / 2;
     }
     else if (pt.z == volume->gridz) //when in grid max
     {
         float z_1 = get_pt(volume, glm::vec3(pt.x, pt.y, pt.z - 1));
-        Dir.z = (pt.z - z_1) / 2;
+        Dir.z = (val - z_1) / 2;
     }
     else
     { //in middle
@@ -234,20 +316,21 @@ vector<vector<vector<float > > > get_bezier(glm::vec3 pt, float *mesh)
                 float x = i < 2 ? 0 : 1, y = j < 2 ? 0 : 1, z = k < 2 ? 0 : 1;
                 b[i][j][k] = m[x][y][z];
                 if (i == 2 || i == 1) //in middle
-                    b[i][j][k] += i == 1 ? g[x][y][z].x / 3 : -g[x][y][z].x / 3;
+                    b[i][j][k] += (i == 1) ? (g[x][y][z].x / 3) : (-g[x][y][z].x / 3);
                 if (j == 2 || j == 1) //in middle
-                    b[i][j][k] += i == 1 ? g[x][y][z].y / 3 : -g[x][y][z].y / 3;
+                    b[i][j][k] += (i == 1) ? (g[x][y][z].y / 3) : (-g[x][y][z].y / 3);
                 if (k == 2 || k == 1) //in middle
-                    b[i][j][k] += i == 1 ? g[x][y][z].z / 3 : -g[x][y][z].z / 3;
+                    b[i][j][k] += (i == 1) ? (g[x][y][z].z / 3) : (-g[x][y][z].z / 3);
             }
     return b;
 }
 
 float Bezier3(int i, int j, int k, glm::vec3 pt)
 {
-    float x = pow(1 - pt.x, 3 - i) * pow(pt.x, i) * ((i == 2 || i == 1) ? 3 : 1);
-    float y = pow(1 - pt.y, 3 - j) * pow(pt.y, j) * ((j == 2 || j == 1) ? 3 : 1);
-    float z = pow(1 - pt.z, 3 - k) * pow(pt.z, k) * ((k == 2 || k == 1) ? 3 : 1);
+    float px = pt.x - floor(pt.x), py = pt.y - floor(pt.y), pz = pt.z - floor(pt.z);
+    float x = pow(1 - px, 3 - i) * pow(px, i) * ((i == 2 || i == 1) ? 3 : 1);
+    float y = pow(1 - py, 3 - j) * pow(py, j) * ((j == 2 || j == 1) ? 3 : 1);
+    float z = pow(1 - pz, 3 - k) * pow(pz, k) * ((k == 2 || k == 1) ? 3 : 1);
     return x * y * z;
 }
 
@@ -273,21 +356,22 @@ float burn3(int d, float pt)
 
 glm::vec3 cubic_gradient(glm::vec3 pt, vector<vector<vector<float> > > b)
 {
+    float px = pt.x - floor(pt.x), py = pt.y - floor(pt.y), pz = pt.z - floor(pt.z);
     float dx = 0, dy = 0, dz = 0;
     for (int i = 0; i < 3; i++)
         for (int j = 0; j < 4; j++)
             for (int k = 0; k < 4; k++)
-                dx += (b[i + 1][j][k] - b[i][j][k]) * burn2(i, pt.x) * burn3(j, pt.y) * burn3(k, pt.z);
+                dx += (b[i + 1][j][k] - b[i][j][k]) * burn2(i, px) * burn3(j, py) * burn3(k, pz);
 
     for (int i = 0; i < 4; i++)
         for (int j = 0; j < 3; j++)
             for (int k = 0; k < 4; k++)
-                dy += (b[i][j + 1][k] - b[i][j][k]) * burn3(i, pt.x) * burn2(j, pt.y) * burn3(k, pt.z);
+                dy += (b[i][j + 1][k] - b[i][j][k]) * burn3(i, px) * burn2(j, py) * burn3(k, pz);
 
     for (int i = 0; i < 4; i++)
         for (int j = 0; j < 4; j++)
             for (int k = 0; k < 3; k++)
-                dz += (b[i][j][k + 1] - b[i][j][k]) * burn3(i, pt.x) * burn3(j, pt.y) * burn2(k, pt.z);
+                dz += (b[i][j][k + 1] - b[i][j][k]) * burn3(i, px) * burn3(j, py) * burn2(k, pz);
 
     return glm::vec3(dx, dy, dz);
 }
@@ -297,6 +381,7 @@ glm::vec3 cubic_gradient(glm::vec3 pt, vector<vector<vector<float> > > b)
  */
 void vrc_accumulate(const RAY *ray, float t0, float t1, float *out)
 {
+    
     float R = 0, G = 0, B = 0, A = 0;
     //march ray for at most maxsteps
     for (int i = 0; i < maxsteps && t0 <= t1; i++)
@@ -316,17 +401,31 @@ void vrc_accumulate(const RAY *ray, float t0, float t1, float *out)
             continue;
         }
 
+        //std::cout << pt.x << " " << pt.y << " " << pt.z << std::endl;
         //interpolate value at point from data
         /*** This is where you need to implement several
          *** interpolation methods, the user should be able
          *** to select which interpolation method to use
          ***/
-        //float val = vrv_interpolate(volume,pt);
-
-        float *mesh = (float *)malloc(8 * sizeof(float));
-        get_mesh(pt, mesh);
-        float val = linear_interpolation(mesh, pt);
-
+        float val;
+        float *mesh;
+        vector<vector<vector<float> > > b;
+        if (mode == 0 || mode == 3)
+             val = vrv_interpolate(volume,pt);
+        else 
+        {
+            mesh = (float *)malloc(8 * sizeof(float));
+            get_mesh(pt, mesh);
+            if (mode == 1)
+                val = linear_interpolation(mesh, pt);
+            else if (mode == 2)
+            {
+                b = get_bezier(pt, mesh);
+                val = cubic_interpolation(pt, b);
+            }
+            
+        }
+        
         /*** This is where you would accumulate colors based on
          *** the opacity values returned from the transfer function.
          *** For testing purposes I just return the color for the first
@@ -335,21 +434,35 @@ void vrc_accumulate(const RAY *ray, float t0, float t1, float *out)
          *** isosurface at the threshold value.
          ***/
 
-        //assumes interpolate returns values between 1.0 and 0;
-        /*if(val > END)
+            //assumes interpolate returns values between 1.0 and 0;
+            /*if(val > END)
             break;*/
 
-        if (val > ISO_THRESHOLD)
+        if (inRange(val))
         {
+            if (mode == 3)
+            {
+                mesh = (float *)malloc(8 * sizeof(float));
+                get_mesh(pt, mesh);
+                b = get_bezier(pt, mesh);
+                float v1 = linear_interpolation(mesh, pt);
+                float v2 = cubic_interpolation(pt, b);
+                val = abs(v1 - v2);
+            }
             glm::vec4 tcol = vrt_lookup(transfer, val);
             if (rendphong)
             {
+                glm::vec3 grad;
                 //gradient is the normal to the iso-surface at this
                 //location, so it makes sense to use for lighting
-                glm::vec3 grad = vrv_gradient(volume, pt);
-
-                // glm::vec3 grad = linear_gradient(mesh, pt);
-                glm::vec3 l = glm::normalize(light->pos);
+                if (mode == 0 || mode == 3)
+                    grad = vrv_gradient(volume, pt);
+                else if (mode == 1)
+                    grad = linear_gradient(mesh, pt);
+                else
+                    grad = cubic_gradient(pt, b);
+                //glm::vec3 grad = linear_gradient(mesh, pt);
+               
                 grad = glm::normalize(grad);
                 //turn gradient (normal) so its always facing the light
 
@@ -358,7 +471,7 @@ void vrc_accumulate(const RAY *ray, float t0, float t1, float *out)
             }
             //should accumulate colors here based on opacity values
             //just return the first value for now.
-
+            
             R = val * tcol.x + (1 - val) * R;
             G = val * tcol.y + (1 - val) * G;
             B = val * tcol.z + (1 - val) * B;
@@ -366,8 +479,9 @@ void vrc_accumulate(const RAY *ray, float t0, float t1, float *out)
         }
         //march along ray by delta t
         t0 += dt;
+        
     }
-
+    
     out[0] = R;
     out[1] = G;
     out[2] = B;
@@ -388,7 +502,8 @@ int vrc_render(float *out_rgba)
 
     //clear image
     memset(out_rgba, 0, sizeof(float) * camera->frame_px * camera->frame_py);
-
+    vrt_init(transfer, 1000, low, high);
+    vrc_settransfer(transfer);
     //iterate over the entire output frame
     //this pragma will parallelize this loop if compiled corectly
     //but comment it out while debugging
@@ -423,7 +538,6 @@ int vrc_render(float *out_rgba)
             vrc_accumulate(&r, t0, t1, out_rgba + index);
         }
     }
-
     return 1;
 }
 
