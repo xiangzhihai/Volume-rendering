@@ -1,0 +1,23 @@
+User Manual
+
+This is Written by Garrett Aldrich, edited by Zhihai Xiang
+
+1. camera 
+   1) move camera position, simply drag the screen.
+   2) zoom in and out, press I for zoom in and O for zoom out.
+   3) rotate camera, press [ to rotate left, ] to rotate left.
+
+2. interpolation method
+   1) press m to change interpolation method, first is nearest
+      point, second is trilinear, third is tricubic, fourth is
+      comparison between trilinear and tricubic.
+
+3. shading and light source
+   1) turn on shading through phong mode by l, trun off by l
+   2) change light source position up by w, down by s, left 
+      by a, right by d, in by e and out by q.
+4 opacity
+   1) default is displaying everything of the object, change 
+      lower bound of the poacity by z and x, z to lower and
+      x to higher. for upper bound, c to lower and v to higher.
+    

@@ -62,7 +62,6 @@ cam_update_view(CAMERA *cam, glm::vec3 dir, glm::vec3 eye, glm::vec3 up){
 
     cam->frame_u = glm::cross(cam->dir,cam->up);
     cam->frame_v = cam->up;
-    std::cout << cam->dir.x << " " << cam->dir.y << " " << cam->dir.z << std::endl;
 }
 
 void zoom_out(CAMERA *cam)
@@ -79,31 +78,21 @@ void zoom_in(CAMERA *cam)
 
 void rotate_left(CAMERA *cam)
 {
-    /*cam->up.x -= 0.1;
-    cam->up.z += 0.1;
-    cam->up.z = glm::normalize(cam->up.z);
-    cam->frame_u = glm::cross(cam->dir, cam->up);
-    cam->frame_v = cam->up;*/
-
-    
-    //get angle and axis
-    //0.175781, 0.765625, 0.618805
-    //0.0898438, 0.152344, 0.984236
-    glm::vec3 start = glm::vec3(0.6, 0.6, 0.45);
-    glm::vec3 end = glm::vec3(0.2, 0.2, 0);
-    float rad = acosf(glm::dot(start, end));
-    glm::vec3 axis = glm::normalize(glm::cross(start, end));
-
+    glm::vec3 axis = glm::vec3(0.0, 0.0, 1.0);
+    float rad = 0.2;
     glm::quat rot = glm::angleAxis(rad, axis);
     glm::quat rot_c = glm::conjugate(rot);
-    //glm::vec3 eye = glm::normalize(rot * cam->eye * rot_c);
-
-    //new view is eye - <0,0,0>
-    //eye point is the rotated eye, normalized
-    //up is the rotated up
     cam_update_view(cam, -cam->eye, cam->eye, rot * cam->up * rot_c);
 }
 
+void rotate_right(CAMERA *cam)
+{
+    glm::vec3 axis = glm::vec3(0.0, 0.0, -1.0);
+    float rad = 0.2;
+    glm::quat rot = glm::angleAxis(rad, axis);
+    glm::quat rot_c = glm::conjugate(rot);
+    cam_update_view(cam, -cam->eye, cam->eye, rot * cam->up * rot_c);
+}
 /*
  * Uses quaternion rotation to rotate the camera around a sphere
  * This is really buggy, but I haven't taken the time to fix it...
@@ -116,15 +105,15 @@ cam_rotate_sphere(CAMERA *cam, glm::vec3 start, glm::vec3 end){
     //two points on a sphere (or two unit vectors)
     start = glm::normalize(start);
     end = glm::normalize(end);
-
-    //std::cout << std::endl << start.x << " " << start.y << " " << start.z << std::endl;
-    //std::cout  << end.x << " " << end.y << " " << end.z << std::endl << std::endl;
-
     //get angle and axis
     float rad = acosf(glm::dot(start,end));
-    if(fabs(rad) < .001) return;
-    glm::vec3 axis = glm::normalize(glm::cross(start,end));
-
+    if(fabs(rad) < .01) return;
+    
+    glm::vec3 t = glm::cross(start,end);
+    //bug fixed
+    if (t.x == 0 && t.y == 0 && t.z == 0)
+        return;
+    glm::vec3 axis = glm::normalize(t);
     glm::quat rot = glm::angleAxis(rad,axis);
     glm::quat rot_c = glm::conjugate(rot);
     glm::vec3 eye = glm::normalize(rot*cam->eye*rot_c);
@@ -132,6 +121,8 @@ cam_rotate_sphere(CAMERA *cam, glm::vec3 start, glm::vec3 end){
     //new view is eye - <0,0,0>
     //eye point is the rotated eye, normalized
     //up is the rotated up
+    
+    
     cam_update_view(cam,-eye,eye,rot*cam->up*rot_c);
     return;
 }

@@ -414,6 +414,10 @@ void key(unsigned char ch, int x, int y){
         rotate_left(vrc_camera());
         glutPostRedisplay();
         break;
+    case '[':
+        rotate_right(vrc_camera());
+        glutPostRedisplay();
+        break;
     case 'm':
         change_mode();
         glutPostRedisplay();

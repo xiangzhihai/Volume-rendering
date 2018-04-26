@@ -24,7 +24,7 @@ VRVOL *volume = NULL;
 //ray marching
 float dt = .01;
 float maxsteps = 1000;
-int mode = 3;
+int mode = 0;
 //use blinn phong shading to render
 int rendphong = 0;
 float low = 0.0, high = 1.0;
@@ -465,7 +465,6 @@ void vrc_accumulate(const RAY *ray, float t0, float t1, float *out)
                
                 grad = glm::normalize(grad);
                 //turn gradient (normal) so its always facing the light
-
                 glm::vec3 col = blinn_phong(ray->orig + ray->dir * t0, ray->dir, grad, glm::vec3(tcol));
                 tcol = glm::vec4(col, tcol.w);
             }
